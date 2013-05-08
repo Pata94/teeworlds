@@ -1,5 +1,6 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
+/* This file is from the Mod "Dropped" by Pata see github.com/Pata94 */
 #include <new>
 #include <engine/shared/config.h>
 #include <game/server/gamecontext.h>
@@ -8,6 +9,8 @@
 #include "character.h"
 #include "laser.h"
 #include "projectile.h"
+
+#include "pickup.h" // Dropped
 
 //input count
 struct CInputCount
@@ -697,6 +700,28 @@ void CCharacter::Die(int Killer, int Weapon)
 	// we got to wait 0.5 secs before respawning
 	m_pPlayer->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
 	int ModeSpecial = GameServer()->m_pController->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
+	
+	/* Dropped */
+	if(Killer != m_pPlayer->GetCID() && Killer >=0 && Killer < MAX_CLIENTS)
+	{
+		int Type = 0;
+		int SubType = 0;
+		
+		//if(m_ActiveWeapon==WEAPON_SHOTGUN || m_ActiveWeapon==WEAPON_GRENADE || m_ActiveWeapon==WEAPON_RIFLE)
+		if(m_ActiveWeapon!=WEAPON_HAMMER)
+		{
+			Type=2;
+			SubType=m_ActiveWeapon;
+		}
+		else if(m_Armor > 0)
+			Type=1;
+		CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType);
+		pPickup->m_Pos = m_Pos;
+		pPickup->m_bDropped=true;
+		pPickup->m_DropVel=m_Core.m_Vel;	
+		//pPickup->m_DropValue Number of hearts, ammunation for example
+	
+	}
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "kill killer='%d:%s' victim='%d:%s' weapon=%d special=%d",

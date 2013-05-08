@@ -1,5 +1,6 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
+/* This file is from the Mod "Dropped" by Pata see github.com/Pata94 */
 #include <engine/shared/config.h>
 
 #include <game/server/entities/character.h>
@@ -8,7 +9,7 @@
 
 CGameControllerTDM::CGameControllerTDM(class CGameContext *pGameServer) : IGameController(pGameServer)
 {
-	m_pGameType = "TDM";
+	m_pGameType = "DropTDM";
 	m_GameFlags = GAMEFLAG_TEAMS;
 }
 
