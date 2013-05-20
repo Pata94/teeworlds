@@ -2030,7 +2030,7 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 	}
 
 	// render screen sizes
-	if(m_ProofBorders)
+	if(m_ProofBorders && !m_ShowPicker)
 	{
 		CLayerGroup *g = m_Map.m_pGameGroup;
 		g->MapScreen();
