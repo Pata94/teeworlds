@@ -3101,8 +3101,26 @@ void CEditor::RenderStatusbar(CUIRect View)
 	CUIRect Button;
 	View.VSplitRight(60.0f, &View, &Button);
 	static int s_EnvelopeButton = 0;
-	if(DoButton_Editor(&s_EnvelopeButton, "Envelopes", m_ShowEnvelopeEditor, &Button, 0, "Toggles the envelope editor."))
-		m_ShowEnvelopeEditor = (m_ShowEnvelopeEditor+1)%4;
+	int EnvButton = DoButton_Editor(&s_EnvelopeButton, "Envelopes", (m_ShowEnvelopeEditor > 0 ? m_ShowEnvelopeEditor:0), &Button, 0, "Toggles the envelope editor. Use right click to resize.");
+	if(EnvButton)
+	{
+		if(EnvButton==1)//Left click
+		{
+			if(m_ShowEnvelopeEditor)
+				m_ShowEnvelopeEditor =-m_ShowEnvelopeEditor;
+			else
+				m_ShowEnvelopeEditor=1;
+		}		
+		else if(EnvButton==2)//Right click
+		{
+			if(m_ShowEnvelopeEditor > -1)
+				m_ShowEnvelopeEditor = (m_ShowEnvelopeEditor+1)%5;
+			else
+				m_ShowEnvelopeEditor=1;
+		}
+	}
+		
+		
 
 	if(m_pTooltip)
 	{
@@ -3685,13 +3703,15 @@ void CEditor::Render()
 		View.VSplitLeft(100.0f, &ToolBox, &View);
 		View.HSplitBottom(16.0f, &View, &StatusBar);
 
-		if(m_ShowEnvelopeEditor && !m_ShowPicker)
+		if(m_ShowEnvelopeEditor > 0 && !m_ShowPicker)
 		{
 			float size = 125.0f;
 			if(m_ShowEnvelopeEditor == 2)
-				size *= 2.0f;
+				size = 250.0f;
 			else if(m_ShowEnvelopeEditor == 3)
-				size *= 3.0f;
+				size = 375.0f;
+			else if(m_ShowEnvelopeEditor == 4)
+				size = 567.0f;
 			View.HSplitBottom(size, &View, &EnvelopeEditor);
 		}
 	}
@@ -3742,7 +3762,7 @@ void CEditor::Render()
 		if(m_Mode == MODE_LAYERS)
 			DoToolbar(ToolBar);
 
-		if(m_ShowEnvelopeEditor)
+		if(m_ShowEnvelopeEditor > 0)
 		{
 			RenderBackground(EnvelopeEditor, ms_BackgroundTexture, 128.0f, Brightness);
 			EnvelopeEditor.Margin(2.0f, &EnvelopeEditor);
@@ -3762,7 +3782,7 @@ void CEditor::Render()
 		RenderMenubar(MenuBar);
 
 		RenderModebar(CModeBar);
-		if(m_ShowEnvelopeEditor)
+		if(m_ShowEnvelopeEditor > 0)
 			RenderEnvelopeEditor(EnvelopeEditor);
 	}
 
