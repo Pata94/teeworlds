@@ -3720,27 +3720,31 @@ void CEditor::Render()
 	if(m_Mode == MODE_LAYERS)
 		DoMapEditor(View, ToolBar);
 
-	// do zooming
-	if(Input()->KeyDown(KEY_KP_MINUS))
-		m_ZoomLevel += 50;
-	if(Input()->KeyDown(KEY_KP_PLUS))
-		m_ZoomLevel -= 50;
-	if(Input()->KeyDown(KEY_KP_MULTIPLY))
+	// do zooming but not in the show picker
+	if(!m_ShowPicker)
 	{
-		m_EditorOffsetX = 0;
-		m_EditorOffsetY = 0;
-		m_ZoomLevel = 100;
-	}
-	if(m_Dialog == DIALOG_NONE && UI()->MouseInside(&View))
-	{
-		if(Input()->KeyPresses(KEY_MOUSE_WHEEL_UP))
-			m_ZoomLevel -= 20;
+		if(Input()->KeyDown(KEY_KP_MINUS))
+			m_ZoomLevel += 50;
+		if(Input()->KeyDown(KEY_KP_PLUS))
+			m_ZoomLevel -= 50;
+		if(Input()->KeyDown(KEY_KP_MULTIPLY))
+		{
+			m_EditorOffsetX = 0;
+			m_EditorOffsetY = 0;
+			m_ZoomLevel = 100;
+		}
+		if(m_Dialog == DIALOG_NONE && UI()->MouseInside(&View))
+		{
+			if(Input()->KeyPresses(KEY_MOUSE_WHEEL_UP))
+				m_ZoomLevel -= 20;
 
-		if(Input()->KeyPresses(KEY_MOUSE_WHEEL_DOWN))
-			m_ZoomLevel += 20;
+			if(Input()->KeyPresses(KEY_MOUSE_WHEEL_DOWN))
+				m_ZoomLevel += 20;
+		}
+		m_ZoomLevel = clamp(m_ZoomLevel, 50, 2000);
+		m_WorldZoom = m_ZoomLevel/100.0f;
 	}
-	m_ZoomLevel = clamp(m_ZoomLevel, 50, 2000);
-	m_WorldZoom = m_ZoomLevel/100.0f;
+	
 
 	if(m_GuiActive)
 	{
