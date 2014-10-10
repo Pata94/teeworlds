@@ -1,6 +1,5 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
-/* This file is from the Mod "Dropped" by Pata see github.com/Pata94 */
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
 #include "pickup.h"
@@ -28,35 +27,18 @@ void CPickup::Reset()
 void CPickup::Tick()
 {
 	// wait for respawn
-	if(!m_bDropped)
+	if(m_SpawnTick > 0)
 	{
-		if(m_SpawnTick > 0)
+		if(Server()->Tick() > m_SpawnTick)
 		{
-			if(Server()->Tick() > m_SpawnTick)
-			{
-				// respawn
-				m_SpawnTick = -1;
+			// respawn
+			m_SpawnTick = -1;
 
-				if(m_Type == POWERUP_WEAPON)
-					GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN);
-			}
-			else
-				return;
+			if(m_Type == POWERUP_WEAPON)
+				GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN);
 		}
-	}
-	else
-	{
-		bool Grounded = false;
-		float Size = 16.0f;
-		if(GameServer()->Collision()->CheckPoint(m_Pos.x+Size, m_Pos.y+Size+5))
-			Grounded = true;
-		if(GameServer()->Collision()->CheckPoint(m_Pos.x-Size, m_Pos.y+Size+5))
-			Grounded = true;
-		float Friction = Grounded ? GameServer()->Tuning()->m_GroundFriction : GameServer()->Tuning()->m_AirFriction;
-	
-		m_DropVel.y += GameServer()->Tuning()->m_Gravity;
-		m_DropVel.x *= Friction;
-		GameServer()->Collision()->MoveBox(&m_Pos, &m_DropVel, vec2(32.0f, 32.0f), 0);	
+		else
+			return;
 	}
 	// Check if a player intersected us
 	CCharacter *pChr = GameServer()->m_World.ClosestCharacter(m_Pos, 20.0f, 0);
@@ -124,24 +106,14 @@ void CPickup::Tick()
 				break;
 		};
 
-	
 		if(RespawnTime >= 0)
 		{
-			if(!m_bDropped)
-			{
-				char aBuf[256];
-				str_format(aBuf, sizeof(aBuf), "pickup player='%d:%s' item=%d/%d",
+			char aBuf[256];
+			str_format(aBuf, sizeof(aBuf), "pickup player='%d:%s' item=%d/%d",
 				pChr->GetPlayer()->GetCID(), Server()->ClientName(pChr->GetPlayer()->GetCID()), m_Type, m_Subtype);
-				GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
-				m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime;
-			}
-			else
-			{
-				GameServer()->m_World.RemoveEntity(this);
-				delete this;
-			}
+			GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+			m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime;
 		}
-		
 	}
 }
 
