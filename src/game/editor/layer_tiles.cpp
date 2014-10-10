@@ -60,7 +60,7 @@ void CLayerTiles::MakePalette()
 
 void CLayerTiles::Render()
 {
-	if(m_Image >= 0 && m_Image < m_pEditor->m_Map.m_lImages.size())
+	if(m_TexID==-1 && m_Image >= 0 && m_Image < m_pEditor->m_Map.m_lImages.size())
 		m_TexID = m_pEditor->m_Map.m_lImages[m_Image]->m_TexID;
 	Graphics()->TextureSet(m_TexID);
 	vec4 Color = vec4(m_Color.r/255.0f, m_Color.g/255.0f, m_Color.b/255.0f, m_Color.a/255.0f);

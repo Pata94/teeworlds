@@ -99,6 +99,7 @@ public:
 	virtual int LoadPNG(CImageInfo *pImg, const char *pFilename, int StorageType);
 
 	void ScreenshotDirect(const char *pFilename);
+	virtual int ScreenToTexture(int x, int y, int w, int h, int Flags);
 
 	virtual void TextureSet(int TextureID);
 

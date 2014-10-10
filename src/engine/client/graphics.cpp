@@ -530,6 +530,32 @@ void CGraphics_OpenGL::ScreenshotDirect(const char *pFilename)
 	mem_free(pPixelData);
 }
 
+int CGraphics_OpenGL::ScreenToTexture(int x, int y, int w, int h, int Flags)
+{
+	
+	// fetch image data
+	
+	unsigned char *pPixelData = (unsigned char *)mem_alloc(w*(h+1)*3, 1);
+	unsigned char *pTempRow = pPixelData+w*h*3;
+	GLint Alignment;
+	glGetIntegerv(GL_PACK_ALIGNMENT, &Alignment);
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glReadPixels(x, y, w, h, GL_RGB, GL_UNSIGNED_BYTE, pPixelData);
+	glPixelStorei(GL_PACK_ALIGNMENT, Alignment);
+
+	// flip the pixel because opengl works from bottom left corner	
+	for(y = 0; y < h/2; y++)
+	{
+		mem_copy(pTempRow, pPixelData+y*w*3, w*3);
+		mem_copy(pPixelData+y*w*3, pPixelData+(h-y-1)*w*3, w*3);
+		mem_copy(pPixelData+(h-y-1)*w*3, pTempRow,w*3);
+	}
+	int ID = LoadTextureRaw(w, h, CImageInfo::FORMAT_RGB, pPixelData, CImageInfo::FORMAT_RGB, Flags);
+	// clean up
+	mem_free(pPixelData);
+	return ID;
+}
+
 void CGraphics_OpenGL::TextureSet(int TextureID)
 {
 	dbg_assert(m_Drawing == 0, "called Graphics()->TextureSet within begin");

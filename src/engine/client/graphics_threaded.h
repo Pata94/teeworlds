@@ -431,6 +431,7 @@ public:
 	virtual void Shutdown();
 
 	virtual void TakeScreenshot(const char *pFilename);
+	virtual int ScreenToTexture(int x, int y, int w, int h, int Flags){ return -1;};
 	virtual void Swap();
 
 	virtual int GetVideoModes(CVideoMode *pModes, int MaxModes);

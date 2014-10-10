@@ -161,7 +161,6 @@ int CLayerGroup::SwapLayers(int Index0, int Index1)
 	swap(m_lLayers[Index0], m_lLayers[Index1]);
 	return Index1;
 }
-
 void CEditorImage::AnalyseTileFlags()
 {
 	mem_zero(m_aTileFlags, sizeof(m_aTileFlags));
@@ -485,8 +484,12 @@ int CEditor::DoButton_Editor(const void *pID, const char *pText, int Checked, co
 int CEditor::DoButton_File(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Flags, const char *pToolTip)
 {
 	if(Checked)
-		RenderTools()->DrawUIRect(pRect, GetButtonColor(pID, Checked), CUI::CORNER_ALL, 3.0f);
-
+	{
+		if(Checked==1)
+			RenderTools()->DrawUIRect(pRect, GetButtonColor(pID, Checked), CUI::CORNER_ALL, 3.0f);
+		else
+			RenderTools()->DrawUIRect(pRect, GetButtonColor(pID, 0), CUI::CORNER_ALL, 3.0f);
+	}
 	CUIRect t = *pRect;
 	t.VMargin(5.0f, &t);
 	UI()->DoLabel(&t, pText, 10, -1, -1);
@@ -784,6 +787,31 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 		else
 			InvokeFileDialog(IStorage::TYPE_SAVE, FILETYPE_MAP, "Save map", "Save", "maps", "", CallbackSaveMap, this);
 	}
+	
+	//ctrl + number to save brush, only number to load brush
+	if(m_Dialog == DIALOG_NONE)
+	{	
+		if(Input()->KeyDown('1'))
+			m_ActiveBrush=0;
+		else if(Input()->KeyDown('2'))
+			m_ActiveBrush=1;
+		else if(Input()->KeyDown('3'))
+			m_ActiveBrush=2;
+		else if(Input()->KeyDown('4'))
+			m_ActiveBrush=3;
+		else if(Input()->KeyDown('5'))
+			m_ActiveBrush=4;
+		else if(Input()->KeyDown('6'))
+			m_ActiveBrush=5;
+		else if(Input()->KeyDown('7'))
+			m_ActiveBrush=6;
+		else if(Input()->KeyDown('8'))
+			m_ActiveBrush=7;
+		else if(Input()->KeyDown('9'))
+			m_ActiveBrush=8;
+		else if(Input()->KeyDown('0'))
+			m_ActiveBrush=9;
+	}
 
 	// detail button
 	TB_Top.VSplitLeft(30.0f, &Button, &TB_Top);
@@ -877,23 +905,23 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 
 	// brush manipulation
 	{
-		int Enabled = m_Brush.IsEmpty()?-1:0;
+		int Enabled = m_aBrushes[m_ActiveBrush].IsEmpty()?-1:0;
 
 		// flip buttons
 		TB_Top.VSplitLeft(30.0f, &Button, &TB_Top);
 		static int s_FlipXButton = 0;
 		if(DoButton_Ex(&s_FlipXButton, "X/X", Enabled, &Button, 0, "[N] Flip brush horizontal", CUI::CORNER_L) || Input()->KeyDown('n'))
 		{
-			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
-				m_Brush.m_lLayers[i]->BrushFlipX();
+			for(int i = 0; i < m_aBrushes[m_ActiveBrush].m_lLayers.size(); i++)
+				m_aBrushes[m_ActiveBrush].m_lLayers[i]->BrushFlipX();
 		}
 
 		TB_Top.VSplitLeft(30.0f, &Button, &TB_Top);
 		static int s_FlipyButton = 0;
 		if(DoButton_Ex(&s_FlipyButton, "Y/Y", Enabled, &Button, 0, "[M] Flip brush vertical", CUI::CORNER_R) || Input()->KeyDown('m'))
 		{
-			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
-				m_Brush.m_lLayers[i]->BrushFlipY();
+			for(int i = 0; i < m_aBrushes[m_ActiveBrush].m_lLayers.size(); i++)
+				m_aBrushes[m_ActiveBrush].m_lLayers[i]->BrushFlipY();
 		}
 
 		// rotate buttons
@@ -903,8 +931,8 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 		static int s_RotationAmount = 90;
 		bool TileLayer = false;
 		// check for tile layers in brush selection
-		for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
-			if(m_Brush.m_lLayers[i]->m_Type == LAYERTYPE_TILES)
+		for(int i = 0; i < m_aBrushes[m_ActiveBrush].m_lLayers.size(); i++)
+			if(m_aBrushes[m_ActiveBrush].m_lLayers[i]->m_Type == LAYERTYPE_TILES)
 			{
 				TileLayer = true;
 				s_RotationAmount = max(90, (s_RotationAmount/90)*90);
@@ -917,16 +945,16 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 		static int s_CcwButton = 0;
 		if(DoButton_Ex(&s_CcwButton, "CCW", Enabled, &Button, 0, "[R] Rotates the brush counter clockwise", CUI::CORNER_L) || Input()->KeyDown('r'))
 		{
-			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
-				m_Brush.m_lLayers[i]->BrushRotate(-s_RotationAmount/360.0f*pi*2);
+			for(int i = 0; i < m_aBrushes[m_ActiveBrush].m_lLayers.size(); i++)
+				m_aBrushes[m_ActiveBrush].m_lLayers[i]->BrushRotate(-s_RotationAmount/360.0f*pi*2);
 		}
 
 		TB_Top.VSplitLeft(30.0f, &Button, &TB_Top);
 		static int s_CwButton = 0;
 		if(DoButton_Ex(&s_CwButton, "CW", Enabled, &Button, 0, "[T] Rotates the brush clockwise", CUI::CORNER_R) || Input()->KeyDown('t'))
 		{
-			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
-				m_Brush.m_lLayers[i]->BrushRotate(s_RotationAmount/360.0f*pi*2);
+			for(int i = 0; i < m_aBrushes[m_ActiveBrush].m_lLayers.size(); i++)
+				m_aBrushes[m_ActiveBrush].m_lLayers[i]->BrushRotate(s_RotationAmount/360.0f*pi*2);
 		}
 	}
 
@@ -1016,6 +1044,65 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 	{
 		if(m_GridFactor < 15)
 			m_GridFactor++;
+	}
+	TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);	
+	static int s_BrushButtons[10] = {1,2,3,4,5,6,7,8,9, 10};
+	for(int i=0; i < 10; ++i)
+	{		
+		TB_Bottom.VSplitLeft(25.0f, &Button, &TB_Bottom);		
+		char aBuf[2];
+		aBuf[0]=48+i;
+		aBuf[1]='\0';
+		int iButton=DoButton_Editor(&s_BrushButtons[i], aBuf, m_ActiveBrush==i?1:0, &Button, 0, "Choose Brush");
+		if(iButton)
+		{
+			m_ActiveBrush=i;
+		}
+		if(UI()->HotItem()==(const void *)&s_BrushButtons[i])
+		{
+			CUIRect Preview;
+			Preview.w = 3.0f*25.0f+2.0f*10.0f;
+			Preview.x = TB_Bottom.x-(12.5f+Preview.w*0.5f);
+			Preview.y =	TB_Bottom.y+TB_Bottom.h+12.5f;
+			Preview.h = Preview.w;
+			
+			RenderBackground(Preview, ms_BackgroundTexture, 128.0f, 0.25f);
+			Preview.Margin(5.0f, &Preview);		
+			if(!m_aBrushes[i].IsEmpty())
+			{	
+				float w,h;
+				m_aBrushes[i].GetSize(&w, &h);				
+				float scaleX= w/Preview.w;
+				float scaleY= h/Preview.h;
+				float scale= max(scaleX, scaleY);
+				dbg_msg("test", "scale: %f", scale);
+				float Size = Preview.w*scale;				
+				//Preview.w *=scale;
+				//Preview.h *=scale;
+				CUIRect Screen = *UI()->Screen();
+				w = (Screen.w/Preview.w)*Size;
+				h = (Screen.h/Preview.h)*Size;
+				float x = -(Preview.x/Preview.w)*Size;
+				float y = -(Preview.y/Preview.h)*Size;
+				Graphics()->MapScreen(x, y, x+w, y+h);
+				for(int a=0; a < m_aBrushes[i].m_lLayers.size(); ++a)
+					m_aBrushes[i].m_lLayers[a]->Render();
+					
+				
+						m_aBrushes[i].GetSize(&w, &h);
+				IGraphics::CLineItem Array[4] = {
+					IGraphics::CLineItem(0, 0, w, 0),
+					IGraphics::CLineItem(w, 0, w, h),
+					IGraphics::CLineItem(w, h, 0, h),
+					IGraphics::CLineItem(0, h, 0, 0)};
+				Graphics()->TextureSet(-1);
+				Graphics()->LinesBegin();
+				Graphics()->LinesDraw(Array, 4);
+				Graphics()->LinesEnd();
+				Graphics()->MapScreen(UI()->Screen()->x, UI()->Screen()->y, UI()->Screen()->w, UI()->Screen()->h);
+			}
+		}		
+		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);	
 	}
 }
 
@@ -1673,13 +1760,7 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 			GetSelectedGroup()->MapScreen();
 			pT->ShowInfo();
 		}
-	}
-	else
-	{
-		// fix aspect ratio of the image in the picker
-		float Max = min(View.w, View.h);
-		View.w = View.h = Max;
-	}
+	}	
 
 	static void *s_pEditorID = (void *)&s_pEditorID;
 	int Inside = UI()->MouseInside(&View);
@@ -1705,7 +1786,10 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 
 	// remap the screen so it can display the whole tileset
 	if(m_ShowPicker)
-	{
+	{	
+		
+		CUIRect Preview;			
+		View.VSplitRight(View.w-min(View.w, View.h), &View, &Preview);		
 		CUIRect Screen = *UI()->Screen();
 		float Size = 32.0*16.0f;
 		float w = Size*(Screen.w/View.w);
@@ -1723,6 +1807,44 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 			m_TilesetPicker.Render();
 			if(m_ShowTileInfo)
 				m_TilesetPicker.ShowInfo();
+		}
+		if(!m_aBrushes[m_ActiveBrush].IsEmpty())
+		{	
+			if(Preview.w > Preview.h)
+				Preview.w=Preview.h;
+			else
+				Preview.h=Preview.w;
+			float w,h;
+				m_aBrushes[m_ActiveBrush].GetSize(&w, &h);				
+				float scaleX= w/Preview.w;
+				float scaleY= h/Preview.h;
+				float scale= max(scaleX, scaleY);
+				dbg_msg("test", "scale: %f", scale);
+				float Size = Preview.w*scale;				
+				//Preview.w *=scale;
+				//Preview.h *=scale;
+				CUIRect Screen = *UI()->Screen();
+				w = (Screen.w/Preview.w)*Size;
+				h = (Screen.h/Preview.h)*Size;
+				float x = -(Preview.x/Preview.w)*Size;
+				float y = -(Preview.y/Preview.h)*Size;
+				Graphics()->MapScreen(x, y, x+w, y+h);
+				for(int a=0; a < m_aBrushes[m_ActiveBrush].m_lLayers.size(); ++a)
+					m_aBrushes[m_ActiveBrush].m_lLayers[a]->Render();
+					
+				
+						m_aBrushes[m_ActiveBrush].GetSize(&w, &h);
+				IGraphics::CLineItem Array[4] = {
+					IGraphics::CLineItem(0, 0, w, 0),
+					IGraphics::CLineItem(w, 0, w, h),
+					IGraphics::CLineItem(w, h, 0, h),
+					IGraphics::CLineItem(0, h, 0, 0)};
+				Graphics()->TextureSet(-1);
+				Graphics()->LinesBegin();
+				Graphics()->LinesDraw(Array, 4);
+				Graphics()->LinesEnd();
+				Graphics()->MapScreen(UI()->Screen()->x, UI()->Screen()->y, UI()->Screen()->w, UI()->Screen()->h);
+			
 		}
 	}
 
@@ -1795,7 +1917,7 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 		// brush editing
 		if(UI()->HotItem() == s_pEditorID)
 		{
-			if(m_Brush.IsEmpty())
+			if(m_aBrushes[m_ActiveBrush].IsEmpty())
 				m_pTooltip = "Use left mouse button to drag and create a brush.";
 			else
 				m_pTooltip = "Use left mouse button to paint with the brush. Right button clears the brush.";
@@ -1821,13 +1943,13 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 
 				if(s_Operation == OP_BRUSH_DRAW)
 				{
-					if(!m_Brush.IsEmpty())
+					if(!m_aBrushes[m_ActiveBrush].IsEmpty())
 					{
 						// draw with brush
 						for(int k = 0; k < NumEditLayers; k++)
 						{
-							if(pEditLayers[k]->m_Type == m_Brush.m_lLayers[0]->m_Type)
-								pEditLayers[k]->BrushDraw(m_Brush.m_lLayers[0], wx, wy);
+							if(pEditLayers[k]->m_Type == m_aBrushes[m_ActiveBrush].m_lLayers[0]->m_Type)
+								pEditLayers[k]->BrushDraw(m_aBrushes[m_ActiveBrush].m_lLayers[0], wx, wy);
 						}
 					}
 				}
@@ -1843,9 +1965,9 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 						// TODO: do all layers
 						int Grabs = 0;
 						for(int k = 0; k < NumEditLayers; k++)
-							Grabs += pEditLayers[k]->BrushGrab(&m_Brush, r);
+							Grabs += pEditLayers[k]->BrushGrab(&m_aBrushes[m_ActiveBrush], r);
 						if(Grabs == 0)
-							m_Brush.Clear();
+							m_aBrushes[m_ActiveBrush].Clear();
 					}
 					else
 					{
@@ -1860,7 +1982,7 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 					if(!UI()->MouseButton(0))
 					{
 						for(int k = 0; k < NumEditLayers; k++)
-							pEditLayers[k]->FillSelection(m_Brush.IsEmpty(), m_Brush.m_lLayers[0], r);
+							pEditLayers[k]->FillSelection(m_aBrushes[m_ActiveBrush].IsEmpty(), m_aBrushes[m_ActiveBrush].m_lLayers[0], r);
 					}
 					else
 					{
@@ -1874,21 +1996,21 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 			else
 			{
 				if(UI()->MouseButton(1))
-					m_Brush.Clear();
+					m_aBrushes[m_ActiveBrush].Clear();
 
 				if(UI()->MouseButton(0) && s_Operation == OP_NONE)
 				{
 					UI()->SetActiveItem(s_pEditorID);
 
-					if(m_Brush.IsEmpty())
+					if(m_aBrushes[m_ActiveBrush].IsEmpty())
 						s_Operation = OP_BRUSH_GRAB;
 					else
 					{
 						s_Operation = OP_BRUSH_DRAW;
 						for(int k = 0; k < NumEditLayers; k++)
 						{
-							if(pEditLayers[k]->m_Type == m_Brush.m_lLayers[0]->m_Type)
-								pEditLayers[k]->BrushPlace(m_Brush.m_lLayers[0], wx, wy);
+							if(pEditLayers[k]->m_Type == m_aBrushes[m_ActiveBrush].m_lLayers[0]->m_Type)
+								pEditLayers[k]->BrushPlace(m_aBrushes[m_ActiveBrush].m_lLayers[0], wx, wy);
 						}
 
 					}
@@ -1898,16 +2020,16 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 						s_Operation = OP_BRUSH_PAINT;
 				}
 
-				if(!m_Brush.IsEmpty())
+				if(!m_aBrushes[m_ActiveBrush].IsEmpty() && !m_ShowPicker)
 				{
-					m_Brush.m_OffsetX = -(int)wx;
-					m_Brush.m_OffsetY = -(int)wy;
-					for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+					m_aBrushes[m_ActiveBrush].m_OffsetX = -(int)wx;
+					m_aBrushes[m_ActiveBrush].m_OffsetY = -(int)wy;
+					for(int i = 0; i < m_aBrushes[m_ActiveBrush].m_lLayers.size(); i++)
 					{
-						if(m_Brush.m_lLayers[i]->m_Type == LAYERTYPE_TILES)
+						if(m_aBrushes[m_ActiveBrush].m_lLayers[i]->m_Type == LAYERTYPE_TILES)
 						{
-							m_Brush.m_OffsetX = -(int)(wx/32.0f)*32;
-							m_Brush.m_OffsetY = -(int)(wy/32.0f)*32;
+							m_aBrushes[m_ActiveBrush].m_OffsetX = -(int)(wx/32.0f)*32;
+							m_aBrushes[m_ActiveBrush].m_OffsetY = -(int)(wy/32.0f)*32;
 							break;
 						}
 					}
@@ -1915,13 +2037,13 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 					CLayerGroup *g = GetSelectedGroup();
 					if(g)
 					{
-						m_Brush.m_OffsetX += g->m_OffsetX;
-						m_Brush.m_OffsetY += g->m_OffsetY;
-						m_Brush.m_ParallaxX = g->m_ParallaxX;
-						m_Brush.m_ParallaxY = g->m_ParallaxY;
-						m_Brush.Render();
+						m_aBrushes[m_ActiveBrush].m_OffsetX += g->m_OffsetX;
+						m_aBrushes[m_ActiveBrush].m_OffsetY += g->m_OffsetY;
+						m_aBrushes[m_ActiveBrush].m_ParallaxX = g->m_ParallaxX;
+						m_aBrushes[m_ActiveBrush].m_ParallaxY = g->m_ParallaxY;
+						m_aBrushes[m_ActiveBrush].Render();
 						float w, h;
-						m_Brush.GetSize(&w, &h);
+						m_aBrushes[m_ActiveBrush].GetSize(&w, &h);
 
 						IGraphics::CLineItem Array[4] = {
 							IGraphics::CLineItem(0, 0, w, 0),
@@ -1939,7 +2061,7 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 
 		// quad editing
 		{
-			if(!m_ShowPicker && m_Brush.IsEmpty())
+			if(!m_ShowPicker && m_aBrushes[m_ActiveBrush].IsEmpty())
 			{
 				// fetch layers
 				CLayerGroup *g = GetSelectedGroup();
@@ -2785,8 +2907,12 @@ void CEditor::AddFileDialogEntry(int Index, CUIRect *pView)
 	IGraphics::CQuadItem QuadItem(FileIcon.x, FileIcon.y, FileIcon.w, FileIcon.h);
 	Graphics()->QuadsDrawTL(&QuadItem, 1);
 	Graphics()->QuadsEnd();
-
-	if(DoButton_File(&m_FileList[Index], m_FileList[Index].m_aName, m_FilesSelectedIndex == Index, &Button, 0, 0))
+	int Checked= 0;
+	if(m_FilesSelectedIndex == Index)
+		Checked=1;
+	else if(UI()->HotItem()==(const void *)&m_FileList[Index])
+		Checked=2;	
+	if(DoButton_File(&m_FileList[Index], m_FileList[Index].m_aName, Checked, &Button, 0, 0))
 	{
 		if(!m_FileList[Index].m_IsDir)
 			str_copy(m_aFileDialogFileName, m_FileList[Index].m_aFilename, sizeof(m_aFileDialogFileName));
@@ -2797,6 +2923,167 @@ void CEditor::AddFileDialogEntry(int Index, CUIRect *pView)
 		if(Input()->MouseDoubleClick())
 			m_aFileDialogActivate = true;
 	}
+	else if(UI()->HotItem()==(const void *)&m_FileList[Index])
+	{
+		static int PreviewTicks = 0;
+		int PreviewDelay=100;
+		if(m_FileDialogFileType==FILETYPE_IMG || m_FilesPreviewTexture != -1)
+		{
+		
+			if(m_FilesPreviewIndex != Index)
+			{			
+				m_FilesPreviewIndex = Index;
+				PreviewTicks=0;
+				if(m_FilesPreviewTexture>=0)
+				{
+					Graphics()->UnloadTexture(m_FilesPreviewTexture);
+					m_FilesPreviewTexture = -1;	
+				}
+			}		
+			
+			if(PreviewTicks==PreviewDelay)
+			{
+				
+				
+				if(m_FilesPreviewTexture==-1)
+				{
+					char aTemp[MAX_PATH_LENGTH];			
+					str_format(aTemp, MAX_PATH_LENGTH, "%s/%s", m_pFileDialogPath, m_FileList[Index].m_aFilename);
+					m_FilesPreviewTexture = Graphics()->LoadTexture(aTemp,m_FileList[Index].m_StorageType, CImageInfo::FORMAT_AUTO, 0);
+					if(m_FilesPreviewTexture < 1)
+					{
+						PreviewTicks=PreviewDelay+1;
+						m_FilesPreviewTexture=-1;
+					}
+				}
+				else
+				{
+					//render Preview
+					CUIRect Preview;
+					CUIRect Screen = *UI()->Screen();
+					Preview.w = Screen.w*0.125f;
+					Preview.x = UI()->MouseX();
+					Preview.y =	UI()->MouseY();
+					Preview.h = Preview.w;
+					RenderBackground(Preview, ms_BackgroundTexture, 128.0f, 0.25f);			
+					IGraphics::CLineItem Array[4] = {
+						IGraphics::CLineItem(Preview.x, Preview.y, Preview.x+Preview.w, Preview.y),
+						IGraphics::CLineItem(Preview.x+Preview.w, Preview.y, Preview.x+Preview.w, Preview.y+Preview.h),
+						IGraphics::CLineItem(Preview.x+Preview.w, Preview.y+Preview.h, Preview.x, Preview.y+Preview.h),
+						IGraphics::CLineItem(Preview.x, Preview.y+Preview.h, Preview.x, Preview.y)};
+					Graphics()->TextureSet(-1);
+					Graphics()->LinesBegin();
+					Graphics()->LinesDraw(Array, 4);
+					Graphics()->LinesEnd();				
+					RenderBackground(Preview, m_FilesPreviewTexture, Preview.w, 1.0f);
+				}
+				}
+			else
+				PreviewTicks++;
+		}
+		else if(m_FileDialogFileType==FILETYPE_MAP)
+		{	
+			
+			if(m_FilesPreviewIndex != Index)
+			{			
+				m_FilesPreviewIndex = Index;
+				PreviewTicks=0;
+				if(m_pFilesPreviewMap)
+				{			
+					delete m_pFilesPreviewMap;
+					m_pFilesPreviewMap = 0;
+				}
+			}		
+			
+			if(PreviewTicks==PreviewDelay)
+			{			
+			
+				if(!m_pFilesPreviewMap)
+				{
+					m_pFilesPreviewMap = new CEditorMap();
+					m_pFilesPreviewMap->m_pEditor = this;
+					char aTemp[MAX_PATH_LENGTH];			
+					str_format(aTemp, MAX_PATH_LENGTH, "%s/%s", m_pFileDialogPath, m_FileList[Index].m_aFilename);					
+					if(!m_pFilesPreviewMap->Load(Kernel()->RequestInterface<IStorage>(), aTemp, m_FileList[Index].m_StorageType))
+					{
+						delete m_pFilesPreviewMap;
+						m_pFilesPreviewMap = 0;
+						PreviewTicks=PreviewDelay+1;
+					}					
+				}else
+				{
+					//render Preview
+					CUIRect Preview;
+					CUIRect Screen = *UI()->Screen();
+					Preview.w = Screen.w*0.125f;
+					Preview.x = UI()->MouseX();
+					Preview.y =	UI()->MouseY();
+					Preview.h = Preview.w;
+					RenderBackground(Preview, ms_BackgroundTexture, 128.0f, 0.25f);							
+					//Preview.Margin(1.0f, &Preview);
+					float w = 0.0f,h = 0.0f;
+					for(int i=0; i < m_pFilesPreviewMap->m_lGroups.size(); ++i)
+					{
+						float a,b;
+						m_pFilesPreviewMap->m_lGroups[i]->GetSize(&a, &b);
+						w=max(a, w);
+						h=max(b, h);					
+					}
+					float scaleX= w/Preview.w;
+					float scaleY= h/Preview.h;
+					float scale= max(scaleX, scaleY);					
+					float Size = Preview.w*scale;				
+					w = (Screen.w/Preview.w)*Size;
+					h = (Screen.h/Preview.h)*Size;
+					float x = -(Preview.x/Preview.w)*Size;
+					float y = -(Preview.y/Preview.h)*Size;
+					Graphics()->MapScreen(x, y, x+w, y+h);
+					for(int i=0; i < m_pFilesPreviewMap->m_lGroups.size(); ++i)
+						for(int ii=0; ii <m_pFilesPreviewMap->m_lGroups[i]->m_lLayers.size(); ++ii)
+						{
+							int LayerType = m_pFilesPreviewMap->m_lGroups[i]->m_lLayers[ii]->m_Type;
+							if(LayerType == LAYERTYPE_TILES)
+							{
+								
+									CLayerTiles *pTiles = (CLayerTiles*)m_pFilesPreviewMap->m_lGroups[i]->m_lLayers[ii];
+								if(pTiles && !pTiles->m_Game && pTiles->m_Image > -1)
+								{
+									pTiles->m_TexID = m_pFilesPreviewMap->m_lImages[pTiles->m_Image]->m_TexID;
+									pTiles->Render();
+								}
+							}
+							else if(LayerType == LAYERTYPE_GAME)
+							m_pFilesPreviewMap->m_lGroups[i]->m_lLayers[ii]->Render();
+						}
+					//m_FilesPreviewTexture = Graphics()->ScreenToTexture( (int) (Preview.x/Screen.w)*Graphics()->ScreenWidth(), (Preview.y/Screen.h)*Graphics()->ScreenHeight(),
+					//(int)(int) (Preview.w/Screen.w)*Graphics()->ScreenWidth(), (int) (Preview.h/Screen.h)*Graphics()->ScreenHeight(), 0);
+					int a,b,c,d;
+					a=(int)((Preview.x/Screen.w)*(float)Graphics()->ScreenWidth());
+					b=(int)(((Preview.y)/Screen.h)*(float)Graphics()->ScreenHeight());
+					c=(int)((Preview.w/Screen.w)*(float)Graphics()->ScreenWidth());
+					d=(int)((Preview.h/Screen.h)*(float)Graphics()->ScreenHeight());
+					m_FilesPreviewTexture = Graphics()->ScreenToTexture(a,b,c,d, 0);
+					//Preview.Margin(1.0f, &Preview);
+					//TODO: RENDER MAP HERE or just render one time and store as a picture
+					IGraphics::CLineItem Array[4] = {
+						IGraphics::CLineItem(Preview.x, Preview.y, Preview.x+Preview.w, Preview.y),
+						IGraphics::CLineItem(Preview.x+Preview.w, Preview.y, Preview.x+Preview.w, Preview.y+Preview.h),
+						IGraphics::CLineItem(Preview.x+Preview.w, Preview.y+Preview.h, Preview.x, Preview.y+Preview.h),
+						IGraphics::CLineItem(Preview.x, Preview.y+Preview.h, Preview.x, Preview.y)};
+					Graphics()->TextureSet(-1);
+					Graphics()->LinesBegin();
+					Graphics()->LinesDraw(Array, 4);
+					Graphics()->LinesEnd();
+					delete m_pFilesPreviewMap;
+						m_pFilesPreviewMap = 0;
+					Graphics()->MapScreen(UI()->Screen()->x, UI()->Screen()->y, UI()->Screen()->w, UI()->Screen()->h);
+				}
+			}
+			else
+				PreviewTicks++;
+		}
+	}
+
 }
 
 void CEditor::RenderFileDialog()
@@ -2849,7 +3136,7 @@ void CEditor::RenderFileDialog()
 			for(int i = 0; m_aFileDialogFileName[i]; ++i)
 				if(m_aFileDialogFileName[i] == '/' || m_aFileDialogFileName[i] == '\\')
 					str_copy(&m_aFileDialogFileName[i], &m_aFileDialogFileName[i+1], (int)(sizeof(m_aFileDialogFileName))-i);
-			m_FilesSelectedIndex = -1;
+			m_FilesSelectedIndex = -1;			
 		}
 	}
 
@@ -3795,6 +4082,14 @@ void CEditor::Render()
 		static int s_NullUiTarget = 0;
 		UI()->SetHotItem(&s_NullUiTarget);
 		RenderFileDialog();
+	}else if(m_FilesPreviewIndex>=0)
+	{
+		if(m_FilesPreviewTexture)
+		{
+			Graphics()->UnloadTexture(m_FilesPreviewTexture);
+			m_FilesPreviewTexture = -1;	
+		}
+		m_FilesPreviewIndex=-1;
 	}
 
 	if(m_PopupEventActivated)
@@ -3857,9 +4152,10 @@ void CEditor::Reset(bool CreateDefault)
 	/*
 	{
 	}*/
-
+	m_ActiveBrush = 0;
+	
 	m_SelectedLayer = 0;
-	m_SelectedGroup = 0;
+	m_SelectedGroup = 1;
 	m_SelectedQuad = -1;
 	m_SelectedPoints = 0;
 	m_SelectedEnvelope = 0;
@@ -3877,7 +4173,7 @@ void CEditor::Reset(bool CreateDefault)
 	m_MouseDeltaY = 0;
 	m_MouseDeltaWx = 0;
 	m_MouseDeltaWy = 0;
-
+	
 	m_Map.m_Modified = false;
 
 	m_ShowEnvelopePreview = 0;
@@ -4019,7 +4315,8 @@ void CEditor::Init()
 	m_TilesetPicker.MakePalette();
 	m_TilesetPicker.m_Readonly = true;
 
-	m_Brush.m_pMap = &m_Map;
+	for(int i=0; i < 10; ++i)
+		m_aBrushes[i].m_pMap = &m_Map;
 
 	Reset();
 	m_Map.m_Modified = false;

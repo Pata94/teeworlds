@@ -115,6 +115,7 @@ public:
 
 
 class CLayer;
+class CLayerTiles;
 class CLayerGroup;
 class CEditorMap;
 
@@ -166,7 +167,6 @@ public:
 	bool m_Visible;
 	bool m_SaveToMap;
 };
-
 class CLayerGroup
 {
 public:
@@ -268,6 +268,11 @@ public:
 	bool m_Modified;
 
 	CEditorMap()
+	{
+		Clean();
+	}
+	
+	~CEditorMap() //clean the memory of course, was forgotten, fatal mistake (!)
 	{
 		Clean();
 	}
@@ -530,6 +535,9 @@ public:
 		m_aFileDialogActivate = false;
 		m_FileDialogScrollValue = 0.0f;
 		m_FilesSelectedIndex = -1;
+		m_FilesPreviewIndex = -1;
+		m_FilesPreviewTexture = -1;
+		m_pFilesPreviewMap = 0;
 		m_FilesStartAt = 0;
 		m_FilesCur = 0;
 		m_FilesStopAt = 999;
@@ -639,6 +647,9 @@ public:
 	int m_FileDialogFileType;
 	float m_FileDialogScrollValue;
 	int m_FilesSelectedIndex;
+	int m_FilesPreviewIndex;
+	int m_FilesPreviewTexture;
+	CEditorMap* m_pFilesPreviewMap;
 	char m_FileDialogNewFolderName[64];
 	char m_FileDialogErrString[64];
 
@@ -699,7 +710,9 @@ public:
 	static int ms_CursorTexture;
 	static int ms_EntitiesTexture;
 
-	CLayerGroup m_Brush;
+	//CLayerGroup m_Brush;
+	int m_ActiveBrush;
+	CLayerGroup m_aBrushes[10];
 	CLayerTiles m_TilesetPicker;
 
 	static const void *ms_pUiGotContext;
