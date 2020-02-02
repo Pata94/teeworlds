@@ -550,8 +550,11 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 	return 1;
 }
 
+
 int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int StorageType, int Mod)
 {
+
+    dbg_msg("Legacy Map Support", "Loading map %s", pFileName);
 	CDataFileReader DataFile;
 	if(!DataFile.Open(pStorage, pFileName, StorageType))
 		return 0;
@@ -705,6 +708,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 							{
 								pTele = CreateCustomLayer(this, pTilemapItem->m_Width, pTilemapItem->m_Height, "#tele", "_numbers");
 								Tele = pRaceTilemapItem->m_Tele;
+                                dbg_msg("Legacy Map Support", "Found tele layer: %d-%d", g, l);
 							}
 							else if(pTilemapItem->m_Flags&TILESLAYERFLAG_SPEEDUP)
 							{
@@ -819,6 +823,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 			}
 		}
 
+
 		static int s_TeleportVelReset = 0;
 
 		// load race
@@ -919,15 +924,57 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						str_format(aBuf, sizeof(aBuf), "%s %d", s_aVars[i].m_pName, s_aValues[i]);
 						for(int j = 0; j < str_length(aBuf); j++)
 							pSettings->m_pTiles[i*MaxLen+j].m_Index = aBuf[j];
+                        dbg_msg("Legacy Map Support", "Add settings %s", aBuf);
 					}
 				}
 			}
 
 			if(m_pGameLayer)
 			{
-				if(pTele && pTele->m_Width == m_pGameLayer->m_Width && pTele->m_Height == m_pGameLayer->m_Height)
-				{
-					CTeleTile *pTeleTiles = (CTeleTile *)DataFile.GetData(Tele);
+
+			    bool FromDataFile = false;
+			    CTeleTile *pTeleTiles = 0;
+
+			    if (pTele) {
+			        if (pTele->m_Width == m_pGameLayer->m_Width && pTele->m_Height == m_pGameLayer->m_Height) {
+                        pTeleTiles = (CTeleTile *)DataFile.GetData(Tele);
+			            FromDataFile = true;
+			        }
+			    } else {
+                    dbg_msg("Legacy Map Support", "Checking legacy support for tele layer...");
+                    pTele = CreateCustomLayer(this, m_pGameLayer->m_Width, m_pGameLayer->m_Height, "#tele", "_numbers");
+                    pTeleTiles = new CTeleTile[m_pGameLayer->m_Width*m_pGameLayer->m_Height];
+
+                    // Add Tele tiles for each gamelayer tile
+                    for(int i = 0; i < m_pGameLayer->m_Width*m_pGameLayer->m_Height; i++)
+                    {
+                        pTeleTiles[i].m_Number = 0;
+                        pTeleTiles[i].m_Type = 0;
+
+                        int GameIndex = m_pGameLayer->m_pTiles[i].m_Index;
+
+
+                        if (GameIndex >= 35 && GameIndex < ENTITY_OFFSET) {
+                            // we found a teleporter \o/
+                            int TeleportOffset = GameIndex - 35;
+                            bool IsFrom = TeleportOffset % 2 == 0;
+                            int TeleportNumber = TeleportOffset / 2;
+
+                            pTeleTiles[i].m_Type = IsFrom ? TILE_TELEOUT : TILE_TELEIN;
+                            pTeleTiles[i].m_Number = TeleportNumber + 1;
+                            m_pGameLayer->m_pTiles[i].m_Index = pTeleTiles[i].m_Type;
+                            dbg_msg("Legacy Map Support", "Found tp!");
+                        } else if(GameIndex == TILE_STOPB) {
+                            dbg_msg("Legacy Map Support", "Found old stop left/right and replaced with stop bottom, might result in wrong map behavior!");
+                        } else if(GameIndex == TILE_TELEIN || GameIndex == TILE_TELEOUT || GameIndex == TILE_TELEIN_STOP) {
+                            dbg_msg("Legacy Map Support", "Found unknown GameIndex, resetting!");
+                            m_pGameLayer->m_pTiles[i].m_Index = 0;
+                        }
+                    }
+			    }
+
+			    if (pTele && pTeleTiles) {
+
 					int NumTiles = 0;
 					bool aTeleporterIn[1<<8] = {0};
 					bool aTeleporterOut[1<<8] = {0};
@@ -968,7 +1015,14 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						if(aTeleporterIn[i] != aTeleporterOut[i])
 							dbg_msg("race", "warning: missing %s for tele #%d", aTeleporterIn[i] ? "out" : "in", i);
 
-					DataFile.UnloadData(Tele);
+                    if (FromDataFile) {
+					    DataFile.UnloadData(Tele);
+                        pTeleTiles = 0;
+                    }
+                    if (pTeleTiles){
+                        delete pTeleTiles; // free the memory again!
+                        pTeleTiles = 0;
+                    }
 				}
 
 				if(pSpeedup && pSpeedup->m_Width == m_pGameLayer->m_Width && pSpeedup->m_Height == m_pGameLayer->m_Height)
@@ -1002,15 +1056,15 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						}
 					}
 
-					if(!pSpeedup)
+					/*if(!pSpeedup)
 					{
 						delete pSpeedupAngle;
 						delete pTele;
 						pTele = 0;
-					}
+					}*/
 
 					DataFile.UnloadData(Speedup);
-				}
+                }
 			}
 
 			if(pGameExtended || pTele || pSpeedup || pSettings)
